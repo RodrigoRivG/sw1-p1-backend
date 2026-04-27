@@ -1,0 +1,19 @@
+# Nombre de la aplicación
+spring.application.name=app-sw1
+
+# Conexión a la base de datos MongoDB Atlas
+spring.data.mongodb.uri=url_de_tu_bd_en_la_nube
+
+# Nombre de la base de datos
+spring.data.mongodb.database=nombre_de_tu_base_de_datos
+
+# Puerto del servidor
+server.port=8080
+
+#JWT 
+jwt.secret=tu_jwt_secret
+jwt.expiration=86400000
+
+#Gemini AI
+gemini.api.key=tu_api_key_gemini
+gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=
