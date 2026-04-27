@@ -16,14 +16,15 @@ public class Procedure {
     
     @Id
     private String id;
-    private String policyId; // Relación con la política de negocio
+    private String policyId; 
     private String currentNodeId;
     private String name;
     private String description;
-    private String clientName; // Lo que menos me importa de momento
+    private String clientName; 
     private String clientEmail;
-    private Map<String, Object> clientInfo; // Lo que menos me importa de momento
+    private Map<String, Object> clientInfo; 
     private String status = "in_progress"; // Ej: "pending", "in_progress", "completed"
+    private int pendingParallelTasks = 0; //para políticas en paralelo
     private String startedBy; // Usuario que inició el trámite
     
     // Para los cuellos de botella

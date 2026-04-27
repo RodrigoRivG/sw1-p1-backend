@@ -45,7 +45,8 @@ public class ProcedureService {
         procedure.setStartedBy(userId);
         procedureRepository.save(procedure);
 
-        createTask(procedure.getId(), firstNodeId, diagram);
+        //createTask(procedure.getId(), firstNodeId, diagram);
+        createTask(procedure, firstNodeId, diagram);
 
         return procedure;
     }
@@ -99,6 +100,7 @@ public class ProcedureService {
         throw new RuntimeException("El nodo de inicio no tiene conexión");
     }
 
+    /*
     @SuppressWarnings("unchecked")
     private void createTask(String procedureId, String nodeId, Map<String, Object> diagram) {
         List<Map<String, Object>> nodes = (List<Map<String, Object>>) diagram.get("nodes");
@@ -121,5 +123,29 @@ public class ProcedureService {
         task.setStartedAt(LocalDateTime.now());
         
         taskRepository.save(task);
+    }
+    */
+
+    @SuppressWarnings("unchecked")
+    private void createTask(Procedure procedure, String nodeId, Map<String, Object> diagram) {
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) diagram.get("nodes");
+        String userId = null;
+
+        for (Map<String, Object> node : nodes) {
+            if (node.get("id").equals(nodeId)) {
+                Map<String, Object> data = (Map<String, Object>) node.get("data");
+                if (data != null) {
+                    userId = (String) data.get("userId");
+                }
+                break;
+            }
+        }
+
+        Task newTask = new Task();
+        newTask.setProcedureId(procedure.getId());
+        newTask.setNodeId(nodeId);
+        newTask.setUserId(userId);
+        newTask.setStartedAt(LocalDateTime.now());
+        taskRepository.save(newTask);
     }
 }
