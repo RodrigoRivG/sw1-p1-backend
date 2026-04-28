@@ -182,12 +182,6 @@ public class TaskService {
                 return;
             }
 
-            /* Flujo secuencial normal
-            procedure.setCurrentNodeId(nextNodeId);
-            procedure.setUpdatedAt(LocalDateTime.now());
-            procedureRepository.save(procedure);
-            createTask(procedure, nextNodeId, nodes);
-            return; */
             // Flujo secuencial normal
             if ("fork".equals(nextNodeType)) {
                 // Saltar el fork y crear tareas para todas sus ramas
@@ -272,70 +266,4 @@ public class TaskService {
         taskRepository.save(newTask);
     }
 
-    /* 
-    @SuppressWarnings("unchecked")
-    private void advanceWorkflow(Task task) {
-        Procedure procedure = procedureRepository.findById(task.getProcedureId())
-            .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
-
-        Policy policy = policyRepository.findById(procedure.getPolicyId())
-            .orElseThrow(() -> new RuntimeException("Política no encontrada"));
-
-        Map<String, Object> diagram = policy.getDiagram();
-        List<Map<String, Object>> edges = (List<Map<String, Object>>) diagram.get("edges");
-        List<Map<String, Object>> nodes = (List<Map<String, Object>>) diagram.get("nodes");
-
-        String nextNodeId = null;
-        for (Map<String, Object> edge : edges) {
-            if (edge.get("source").equals(task.getNodeId())) {
-                nextNodeId = (String) edge.get("target");
-                break;
-            }
-        }
-
-        if (nextNodeId == null) {
-            procedure.setStatus("completed");
-            procedure.setUpdatedAt(LocalDateTime.now());
-            procedureRepository.save(procedure);
-
-            return;
-        }
-
-        //Verificar si el siguiente nodo es "end"
-        for (Map<String, Object> node : nodes) {
-            if (node.get("id").equals(nextNodeId)) {
-                Map<String, Object> data = (Map<String, Object>) node.get("data");
-                if (data != null && "end".equals(data.get("type"))) {
-                    procedure.setStatus("completed");
-                    procedure.setUpdatedAt(java.time.LocalDateTime.now());
-                    procedureRepository.save(procedure);
-                    return;
-                }
-                break;
-            }
-        }
-
-        procedure.setCurrentNodeId(nextNodeId);
-        procedure.setUpdatedAt(LocalDateTime.now());
-        procedureRepository.save(procedure);
-
-        String userId = null;
-        for (Map<String, Object> node : nodes) {
-            if (node.get("id").equals(nextNodeId)) {
-                Map<String, Object> data = (Map<String, Object>) node.get("data");
-                if (data != null) {
-                    userId = (String) data.get("userId");
-                }
-                break;
-            }
-        }
-
-        Task newTask = new Task();
-        newTask.setProcedureId(procedure.getId());
-        newTask.setNodeId(nextNodeId);
-        newTask.setUserId(userId);
-        newTask.setCreatedAt(LocalDateTime.now());
-        taskRepository.save(newTask);
-    }
-    */
 }

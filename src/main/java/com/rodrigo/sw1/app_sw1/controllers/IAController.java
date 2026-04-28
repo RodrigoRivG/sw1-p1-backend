@@ -34,7 +34,7 @@ public class IAController {
     }
 
     @PostMapping("/design-flow")
-    public ResponseEntity<?> desingFlow(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> designFlow(@RequestBody Map<String, Object> body) {
         try {
             String prompt = """
                 Eres un asistente experto en diseño de flujos de trabajo.

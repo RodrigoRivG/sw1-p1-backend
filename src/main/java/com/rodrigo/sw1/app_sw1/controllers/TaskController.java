@@ -19,12 +19,6 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-   // @GetMapping("/my-tasks")
-    //public ResponseEntity<List<Task>> getMyTasks(Authentication authentication) {
-   //     String userId = authentication.getName();
-   //     return ResponseEntity.ok(taskService.getByUser(userId));
-   // }
-
     @GetMapping("/my-tasks")
     public ResponseEntity<List<Map<String, Object>>> getMyTasks(Authentication authentication) {
         String userId = authentication.getName();
