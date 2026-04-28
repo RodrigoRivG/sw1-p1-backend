@@ -115,14 +115,6 @@ public class ProcedureService {
                 break;
             }
         }
-
-        Task task = new Task();
-        task.setProcedureId(procedureId);
-        task.setNodeId(nodeId);
-        task.setUserId(userId);
-        task.setStartedAt(LocalDateTime.now());
-        
-        taskRepository.save(task);
     }
     */
 
