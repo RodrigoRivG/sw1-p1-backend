@@ -9,4 +9,5 @@ public interface ProcedureRepository extends MongoRepository<Procedure, String>{
     List<Procedure> findByPolicyId(String policyId);
     List<Procedure> findByStartedBy(String startedBy);
     List<Procedure> findByStatus(String status);
+    List<Procedure> findByClientEmail(String clientEmail);
 }

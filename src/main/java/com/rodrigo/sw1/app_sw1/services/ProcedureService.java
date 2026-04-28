@@ -100,23 +100,9 @@ public class ProcedureService {
         throw new RuntimeException("El nodo de inicio no tiene conexión");
     }
 
-    /*
-    @SuppressWarnings("unchecked")
-    private void createTask(String procedureId, String nodeId, Map<String, Object> diagram) {
-        List<Map<String, Object>> nodes = (List<Map<String, Object>>) diagram.get("nodes");
-        String userId = null;
-
-        for (Map<String, Object> node : nodes) {
-            if (node.get("id").equals(nodeId)) {
-                Map<String, Object> data = (Map<String, Object>) node.get("data");
-                if (data != null) {
-                    userId = (String) data.get("userId");
-                }
-                break;
-            }
-        }
+    public List<Procedure> getByClientEmail(String email) {
+        return procedureRepository.findByClientEmail(email);
     }
-    */
 
     @SuppressWarnings("unchecked")
     private void createTask(Procedure procedure, String nodeId, Map<String, Object> diagram) {

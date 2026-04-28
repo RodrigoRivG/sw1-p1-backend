@@ -51,4 +51,13 @@ public class ProcedureController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/by-email")
+    public ResponseEntity<?> getByClientEmail(@RequestParam String email) {
+        try {
+            return ResponseEntity.ok(procedureService.getByClientEmail(email));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
