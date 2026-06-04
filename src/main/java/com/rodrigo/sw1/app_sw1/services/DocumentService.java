@@ -2,6 +2,7 @@ package com.rodrigo.sw1.app_sw1.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import com.rodrigo.sw1.app_sw1.models.DocumentModel;
 import com.rodrigo.sw1.app_sw1.models.DocumentVersion;
 import com.rodrigo.sw1.app_sw1.models.DocumentPermission;
@@ -29,9 +30,9 @@ public class DocumentService {
     private BackblazeService backblazeService;
 
     /**
-     * Crear un nuevo documento en una política
+     * Crear un nuevo documento en una política con archivo
      */
-    public DocumentResponse createDocument(DocumentRequest request, String userId) {
+    public DocumentResponse createDocument(DocumentRequest request, String userId, MultipartFile file) {
         // Crear documento
         DocumentModel document = new DocumentModel();
         document.setPolicyId(request.getPolicyId());
@@ -41,6 +42,13 @@ public class DocumentService {
         document.setCreatedAt(LocalDateTime.now());
         document.setUpdatedAt(LocalDateTime.now());
 
+        // Subir archivo a Backblaze si existe
+        String fileUrl = null;
+        if (file != null && !file.isEmpty()) {
+            fileUrl = backblazeService.uploadFile(file, request.getPolicyId());
+            document.setBackblazeUrl(fileUrl);
+        }
+
         // Guardar documento inicial
         DocumentModel savedDocument = documentRepository.save(document);
 
@@ -49,6 +57,7 @@ public class DocumentService {
         initialVersion.setDocumentId(savedDocument.getId());
         initialVersion.setVersionNumber(1);
         initialVersion.setContent(request.getContent());
+        initialVersion.setBackblazeUrl(fileUrl);
         initialVersion.setModifiedBy(userId);
         initialVersion.setModifiedAt(LocalDateTime.now());
         initialVersion.setChangeDescription("Creación inicial del documento");
@@ -57,7 +66,6 @@ public class DocumentService {
 
         // Actualizar documento con versión actual
         savedDocument.setCurrentVersionId(savedVersion.getId());
-        savedDocument.getVersionIds().add(savedVersion.getId());
         documentRepository.save(savedDocument);
 
         // Crear permisos si existen
@@ -72,6 +80,13 @@ public class DocumentService {
         }
 
         return mapToResponse(savedDocument);
+    }
+
+    /**
+     * Crear documento sin archivo (sobrecarga)
+     */
+    public DocumentResponse createDocument(DocumentRequest request, String userId) {
+        return createDocument(request, userId, null);
     }
 
     /**
@@ -94,9 +109,9 @@ public class DocumentService {
     }
 
     /**
-     * Actualizar contenido de un documento (crea nueva versión)
+     * Actualizar contenido de un documento (crea nueva versión con archivo)
      */
-    public DocumentResponse updateDocument(String documentId, DocumentUpdateRequest request, String userId) {
+    public DocumentResponse updateDocument(String documentId, DocumentUpdateRequest request, String userId, MultipartFile file) {
         DocumentModel document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RuntimeException("Documento no encontrado: " + documentId));
 
@@ -110,11 +125,18 @@ public class DocumentService {
                 .findByDocumentIdAndVersionNumber(documentId, latestVersionNumber)
                 .orElseThrow(() -> new RuntimeException("Versión no encontrada"));
 
+        // Subir nuevo archivo a Backblaze si existe
+        String fileUrl = null;
+        if (file != null && !file.isEmpty()) {
+            fileUrl = backblazeService.uploadFile(file, document.getPolicyId());
+        }
+
         // Crear nueva versión
         DocumentVersion newVersion = new DocumentVersion();
         newVersion.setDocumentId(documentId);
         newVersion.setVersionNumber(lastVersion.getVersionNumber() + 1);
         newVersion.setContent(request.getContent());
+        newVersion.setBackblazeUrl(fileUrl);
         newVersion.setModifiedBy(userId);
         newVersion.setModifiedAt(LocalDateTime.now());
         newVersion.setChangeDescription(request.getChangeDescription());
@@ -125,10 +147,19 @@ public class DocumentService {
         // Actualizar documento
         document.setCurrentVersionId(savedVersion.getId());
         document.setUpdatedAt(LocalDateTime.now());
-        document.getVersionIds().add(savedVersion.getId());
+        if (fileUrl != null) {
+            document.setBackblazeUrl(fileUrl);
+        }
         documentRepository.save(document);
 
         return mapToResponse(document);
+    }
+
+    /**
+     * Actualizar documento sin archivo (sobrecarga)
+     */
+    public DocumentResponse updateDocument(String documentId, DocumentUpdateRequest request, String userId) {
+        return updateDocument(documentId, request, userId, null);
     }
 
     /**
@@ -176,7 +207,7 @@ public class DocumentService {
         // Actualizar documento
         document.setCurrentVersionId(savedVersion.getId());
         document.setUpdatedAt(LocalDateTime.now());
-        document.getVersionIds().add(savedVersion.getId());
+        //document.getVersionIds().add(savedVersion.getId());
         documentRepository.save(document);
 
         return mapToResponse(document);
@@ -254,7 +285,7 @@ public class DocumentService {
         response.setCreatedBy(document.getCreatedBy());
         response.setCreatedAt(document.getCreatedAt());
         response.setUpdatedAt(document.getUpdatedAt());
-        response.setVersionIds(document.getVersionIds());
+        //response.setVersionIds(document.getVersionIds());
         response.setPermissions(getDocumentPermissions(document.getId()));
         return response;
     }
@@ -285,5 +316,61 @@ public class DocumentService {
         List<DocumentVersion> versions = documentVersionRepository
                 .findByDocumentIdOrderByVersionNumberDesc(documentId);
         return versions.isEmpty() ? 0 : versions.get(0).getVersionNumber();
+    }
+
+    /**
+     * Descargar documento - genera URL firmada temporal
+     */
+    public String downloadDocument(String documentId, int expirationMinutes) {
+        DocumentModel document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Documento no encontrado: " + documentId));
+
+        if (document.getBackblazeUrl() == null || document.getBackblazeUrl().isEmpty()) {
+            throw new RuntimeException("Documento no tiene archivo asociado");
+        }
+
+        // Extraer clave del documento
+        String fileKey = document.getPolicyId() + "/" + document.getName();
+        
+        // Generar y retornar URL firmada
+        return backblazeService.generatePresignedUrl(fileKey, expirationMinutes);
+    }
+
+    /**
+     * Eliminar documento y sus archivos de Backblaze
+     */
+    public void deleteDocument(String documentId) {
+        DocumentModel document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Documento no encontrado: " + documentId));
+
+        // Eliminar archivo de Backblaze si existe
+        if (document.getBackblazeUrl() != null && !document.getBackblazeUrl().isEmpty()) {
+            try {
+                backblazeService.deleteFile(document.getBackblazeUrl());
+            } catch (Exception e) {
+                System.err.println("Error eliminando archivo de Backblaze: " + e.getMessage());
+            }
+        }
+
+        // Eliminar versiones
+        List<DocumentVersion> versions = documentVersionRepository
+                .findByDocumentIdOrderByVersionNumberDesc(documentId);
+        for (DocumentVersion version : versions) {
+            if (version.getBackblazeUrl() != null && !version.getBackblazeUrl().isEmpty()) {
+                try {
+                    backblazeService.deleteFile(version.getBackblazeUrl());
+                } catch (Exception e) {
+                    System.err.println("Error eliminando versión de Backblaze: " + e.getMessage());
+                }
+            }
+        }
+        documentVersionRepository.deleteAll(versions);
+
+        // Eliminar permisos
+        List<DocumentPermission> permissions = documentPermissionRepository.findByDocumentId(documentId);
+        documentPermissionRepository.deleteAll(permissions);
+
+        // Eliminar documento
+        documentRepository.deleteById(documentId);
     }
 }

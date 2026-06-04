@@ -3,6 +3,7 @@ package com.rodrigo.sw1.app_sw1.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.rodrigo.sw1.app_sw1.dto.*;
 import com.rodrigo.sw1.app_sw1.services.DocumentService;
 import java.util.List;
@@ -42,34 +43,37 @@ public class DocumentController {
     }
 
     /**
-     * Crear un nuevo documento
+     * Crear un nuevo documento con archivo opcional
      */
-    @PostMapping
-    public ResponseEntity<DocumentResponse> createDocument(@RequestBody DocumentRequest request) {
+    @PostMapping(consumes = "multipart/form-data")
+    public ResponseEntity<DocumentResponse> createDocument(
+            @RequestPart DocumentRequest request,
+            @RequestPart(required = false) MultipartFile file) {
         try {
             // TODO: Obtener userId del token JWT
             String userId = "user123"; // Temporal
-            DocumentResponse document = documentService.createDocument(request, userId);
+            DocumentResponse document = documentService.createDocument(request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
     /**
-     * Actualizar contenido de un documento (crear nueva versión)
+     * Actualizar contenido de un documento (crear nueva versión) con archivo opcional
      */
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     public ResponseEntity<DocumentResponse> updateDocument(
             @PathVariable String id,
-            @RequestBody DocumentUpdateRequest request) {
+            @RequestPart DocumentUpdateRequest request,
+            @RequestPart(required = false) MultipartFile file) {
         try {
             // TODO: Obtener userId del token JWT
             String userId = "user123"; // Temporal
-            DocumentResponse document = documentService.updateDocument(id, request, userId);
+            DocumentResponse document = documentService.updateDocument(id, request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
@@ -149,6 +153,34 @@ public class DocumentController {
                 "requiredPermission", requiredPermission,
                 "hasPermission", hasPermission
             ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Descargar documento - genera URL firmada temporal
+     */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Map<String, String>> downloadDocument(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "60") int expirationMinutes) {
+        try {
+            String presignedUrl = documentService.downloadDocument(id, expirationMinutes);
+            return ResponseEntity.ok(Map.of("presignedUrl", presignedUrl));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Eliminar un documento y todos sus archivos
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteDocument(@PathVariable String id) {
+        try {
+            documentService.deleteDocument(id);
+            return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
