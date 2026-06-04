@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.rodrigo.sw1.app_sw1.dto.*;
 import com.rodrigo.sw1.app_sw1.services.DocumentService;
+import org.springframework.security.core.Authentication;
+
 import java.util.List;
 import java.util.Map;
 
@@ -47,11 +49,11 @@ public class DocumentController {
      */
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<DocumentResponse> createDocument(
+            Authentication authentication,
             @RequestPart DocumentRequest request,
             @RequestPart(required = false) MultipartFile file) {
         try {
-            // TODO: Obtener userId del token JWT
-            String userId = "user123"; // Temporal
+            String userId = authentication.getName(); // Temporal
             DocumentResponse document = documentService.createDocument(request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
@@ -64,12 +66,12 @@ public class DocumentController {
      */
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     public ResponseEntity<DocumentResponse> updateDocument(
+            Authentication authentication,
             @PathVariable String id,
             @RequestPart DocumentUpdateRequest request,
             @RequestPart(required = false) MultipartFile file) {
         try {
-            // TODO: Obtener userId del token JWT
-            String userId = "user123"; // Temporal
+            String userId = authentication.getName(); 
             DocumentResponse document = documentService.updateDocument(id, request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
@@ -95,11 +97,11 @@ public class DocumentController {
      */
     @PostMapping("/{id}/restore/{versionNumber}")
     public ResponseEntity<DocumentResponse> restoreVersion(
+            Authentication authentication,
             @PathVariable String id,
             @PathVariable Integer versionNumber) {
         try {
-            // TODO: Obtener userId del token JWT
-            String userId = "user123"; // Temporal
+            String userId = authentication.getName(); 
             DocumentResponse document = documentService.restoreVersion(id, versionNumber, userId);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
