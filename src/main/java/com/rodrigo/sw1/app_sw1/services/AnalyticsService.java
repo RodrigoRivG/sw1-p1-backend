@@ -14,6 +14,8 @@ import com.rodrigo.sw1.app_sw1.models.User;
 
 import java.util.*;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 public class AnalyticsService {
@@ -140,5 +142,108 @@ public class AnalyticsService {
         }
 
         return userNameMap;
+    }
+
+    public Map<String, Object> getDynamicReport(String startDate, String endDate, 
+                                              String department, String type) {
+        // Convertir fechas
+        LocalDateTime start = startDate != null ? 
+            LocalDate.parse(startDate).atStartOfDay() : LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime end = endDate != null ? 
+            LocalDate.parse(endDate).atTime(23, 59, 59) : LocalDateTime.now();
+
+        // Obtener tareas completadas en el rango de fechas
+        List<Task> tasks = taskRepository.findByStatusAndCreatedAtBetween("completed", start, end);
+
+        // Filtrar por departamento si se especificó
+        if (department != null) {
+            Map<String, String> nodeLabelMap = buildNodeLabelMap();
+            Map<String, String> nodeDepartmentMap = buildNodeDepartmentMap();
+            tasks = tasks.stream()
+                    .filter(t -> {
+                        String dept = nodeDepartmentMap.get(t.getNodeId());
+                        return dept != null && dept.toLowerCase().contains(department.toLowerCase());
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Calcular KPIs
+        Map<String, String> userNameMap = buildUserNameMap();
+        Map<String, String> nodeLabelMap = buildNodeLabelMap();
+
+        Map<String, List<Long>> timesByNode = new HashMap<>();
+        Map<String, List<Long>> timesByUser = new HashMap<>();
+
+        for (Task task : tasks) {
+            if (task.getStartedAt() != null && task.getFinishedAt() != null) {
+                long minutes = Duration.between(task.getStartedAt(), task.getFinishedAt()).toMinutes();
+                String nodeLabel = nodeLabelMap.getOrDefault(task.getNodeId(), task.getNodeId());
+                String userName = userNameMap.getOrDefault(task.getUserId(), task.getUserId());
+                timesByNode.computeIfAbsent(nodeLabel, k -> new ArrayList<>()).add(minutes);
+                timesByUser.computeIfAbsent(userName, k -> new ArrayList<>()).add(minutes);
+            }
+        }
+
+        Map<String, Double> avgTimeByNode = new HashMap<>();
+        timesByNode.forEach((k, v) -> avgTimeByNode.put(k, 
+            v.stream().mapToLong(Long::longValue).average().orElse(0)));
+
+        Map<String, Double> avgTimeByUser = new HashMap<>();
+        timesByUser.forEach((k, v) -> avgTimeByUser.put(k, 
+            v.stream().mapToLong(Long::longValue).average().orElse(0)));
+
+        String bottleneck = avgTimeByNode.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey).orElse("N/A");
+
+        String mostEfficient = avgTimeByUser.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey).orElse("N/A");
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("totalTasks", tasks.size());
+        report.put("avgTimeByNode", avgTimeByNode);
+        report.put("avgTimeByUser", avgTimeByUser);
+        report.put("bottleneckNode", bottleneck);
+        report.put("mostEfficientUser", mostEfficient);
+        report.put("period", Map.of(
+            "from", startDate != null ? startDate : "sin límite",
+            "to", endDate != null ? endDate : "hoy"
+        ));
+        report.put("department", department != null ? department : "todos");
+
+        return report;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> buildNodeDepartmentMap() {
+        Map<String, String> nodeDepartmentMap = new HashMap<>();
+        List<Policy> policies = policyRepository.findAll();
+
+        for (Policy policy : policies) {
+            Map<String, Object> diagram = policy.getDiagram();
+            if (diagram == null) continue;
+
+            List<Map<String, Object>> nodes = (List<Map<String, Object>>) diagram.get("nodes");
+            List<Map<String, Object>> swimlanes = (List<Map<String, Object>>) diagram.get("swimlanes");
+            if (nodes == null || swimlanes == null) continue;
+
+            Map<String, String> swimlaneLabels = new HashMap<>();
+            for (Map<String, Object> swimlane : swimlanes) {
+                swimlaneLabels.put((String) swimlane.get("id"), (String) swimlane.get("label"));
+            }
+
+            for (Map<String, Object> node : nodes) {
+                String nodeId = (String) node.get("id");
+                Map<String, Object> data = (Map<String, Object>) node.get("data");
+                if (data != null && nodeId != null) {
+                    String deptId = (String) data.get("departmentId");
+                    if (deptId != null) {
+                        nodeDepartmentMap.put(nodeId, swimlaneLabels.getOrDefault(deptId, deptId));
+                    }
+                }
+            }
+        }
+        return nodeDepartmentMap;
     }
 }

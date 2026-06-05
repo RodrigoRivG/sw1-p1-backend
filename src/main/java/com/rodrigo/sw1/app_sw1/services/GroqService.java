@@ -42,4 +42,37 @@ public class GroqService {
         Map message = (Map) choices.get(0).get("message");
         return (String) message.get("content");
     }
+
+    public Map<String, Object> extractReportFilters(String userQuery) {
+        String prompt = """
+            Eres un extractor de filtros para reportes de un sistema de gestión de procesos.
+            El usuario describe en lenguaje natural qué reporte quiere.
+            Extrae los filtros y devuelve SOLO un JSON con esta estructura exacta, sin explicaciones ni markdown:
+            {
+                "startDate": "YYYY-MM-DD o null",
+                "endDate": "YYYY-MM-DD o null",
+                "department": "nombre del departamento o null",
+                "type": "tasks/procedures/analytics o null"
+            }
+            
+            Reglas:
+            - Si no menciona fecha de inicio, startDate es null
+            - Si no menciona fecha de fin, endDate es null
+            - Si no menciona departamento, department es null
+            - Si no menciona tipo de reporte, type es null
+            - Las fechas deben estar en formato YYYY-MM-DD
+            - Hoy es %s
+
+            Consulta del usuario: %s
+            """.formatted(java.time.LocalDate.now(), userQuery);
+
+        String response = generateContent(prompt);
+        String clean = response.replaceAll("```json", "").replaceAll("```", "").trim();
+
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(clean, Map.class);
+        } catch(Exception e) {
+            throw new RuntimeException("Error al procesar la consulta: " + e.getMessage());
+        }
+    }
 }
