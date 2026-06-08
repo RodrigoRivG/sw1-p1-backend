@@ -17,6 +17,7 @@ import com.rodrigo.sw1.app_sw1.services.DocumentService;
 
 import java.util.Map;
 import java.util.List;
+import java.security.Principal;
 
 @Controller
 public class WebSocketController {
@@ -61,10 +62,13 @@ public class WebSocketController {
     @MessageMapping("/documents/{documentId}/join")
     public void joinDocument(
             @DestinationVariable String documentId,
-            @Header("simpUser") String userId,
+            Principal principal,
             StompHeaderAccessor accessor) {
+
+        String userId = principal.getName();
         try {
             // Obtener información del usuario desde el header
+            //String userId = principal.getName();
             String userName = accessor.getNativeHeader("userName") != null 
                 ? accessor.getNativeHeader("userName").get(0) 
                 : "Usuario " + userId;
@@ -121,8 +125,10 @@ public class WebSocketController {
     public void editDocument(
             @DestinationVariable String documentId,
             DocumentEditMessage editMessage,
-            @Header("simpUser") String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         try {
+            //String userId = principal.getName();
             editMessage.setUserId(userId);
             editMessage.setDocumentId(documentId);
             editMessage.setTimestamp(System.currentTimeMillis());
@@ -152,7 +158,8 @@ public class WebSocketController {
     public void updateCursor(
             @DestinationVariable String documentId,
             CursorPositionMessage cursorMessage,
-            @Header("simpUser") String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         try {
             cursorMessage.setUserId(userId);
             cursorMessage.setDocumentId(documentId);
@@ -183,7 +190,8 @@ public class WebSocketController {
     public void saveDocument(
             @DestinationVariable String documentId,
             DocumentEditMessage saveMessage,
-            @Header("simpUser") String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         try {
             collaborativeEditService.saveDocument(
                 documentId,

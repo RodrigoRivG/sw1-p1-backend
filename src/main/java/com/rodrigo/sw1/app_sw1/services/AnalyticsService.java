@@ -10,6 +10,7 @@ import com.rodrigo.sw1.app_sw1.repository.UserRepository;
 
 import com.rodrigo.sw1.app_sw1.models.Task;
 import com.rodrigo.sw1.app_sw1.models.Policy;
+import com.rodrigo.sw1.app_sw1.models.Procedure;
 import com.rodrigo.sw1.app_sw1.models.User;
 
 import java.util.*;
@@ -144,6 +145,8 @@ public class AnalyticsService {
         return userNameMap;
     }
 
+    /* 
+
     public Map<String, Object> getDynamicReport(String startDate, String endDate, 
                                               String department, String type) {
         // Convertir fechas
@@ -214,6 +217,7 @@ public class AnalyticsService {
 
         return report;
     }
+    */
 
     @SuppressWarnings("unchecked")
     private Map<String, String> buildNodeDepartmentMap() {
@@ -245,5 +249,63 @@ public class AnalyticsService {
             }
         }
         return nodeDepartmentMap;
+    }
+
+    
+    public Map<String, Object> getDynamicReport(String startDate, String endDate,
+                                              String department, String type) {
+        LocalDateTime start = startDate != null ?
+            LocalDate.parse(startDate).atStartOfDay() : LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime end = endDate != null ?
+            LocalDate.parse(endDate).atTime(23, 59, 59) : LocalDateTime.now();
+
+        // Obtener trámites en el rango de fechas
+        List<Procedure> procedures = procedureRepository.findByCreatedAtBetween(start, end);
+
+        // Filtrar por departamento si se especificó
+        Map<String, String> nodeDepartmentMap = buildNodeDepartmentMap();
+        if (department != null) {
+            procedures = procedures.stream()
+                    .filter(p -> {
+                        String dept = nodeDepartmentMap.get(p.getCurrentNodeId());
+                        return dept != null && dept.toLowerCase().contains(department.toLowerCase());
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Armar lista de trámites con detalles
+        List<Map<String, Object>> procedureDetails = new ArrayList<>();
+        for (Procedure procedure : procedures) {
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("clientName", procedure.getClientName());
+            detail.put("status", procedure.getStatus());
+            detail.put("createdAt", procedure.getCreatedAt());
+
+            // Nombre de la política
+            policyRepository.findById(procedure.getPolicyId()).ifPresent(policy -> {
+                detail.put("policyName", policy.getName());
+            });
+
+            // Tiempo total del trámite en minutos
+            if (procedure.getUpdatedAt() != null && procedure.getCreatedAt() != null) {
+                long minutes = Duration.between(procedure.getCreatedAt(), procedure.getUpdatedAt()).toMinutes();
+                detail.put("totalMinutes", minutes);
+            } else {
+                detail.put("totalMinutes", "En proceso");
+            }
+
+            procedureDetails.add(detail);
+        }
+
+        Map<String, Object> report = new HashMap<>();
+            report.put("procedures", procedureDetails);
+            report.put("totalProcedures", procedures.size());
+            report.put("period", Map.of(
+            "from", startDate != null ? startDate : "sin límite",
+            "to", endDate != null ? endDate : "hoy"
+        ));
+        report.put("department", department != null ? department : "todos");
+
+        return report;
     }
 }

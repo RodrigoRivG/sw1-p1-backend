@@ -11,4 +11,5 @@ import java.util.List;
 public interface PolicyRepository extends MongoRepository<Policy, String> {
     List<Policy> findByCreatedBy(String createdBy);
     List<Policy> findByCollaboratorsContaining(String userId);
+    List<Policy> findByStatus(String status);
 }

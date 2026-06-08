@@ -12,12 +12,21 @@ import com.rodrigo.sw1.app_sw1.dto.PolicyRequest;
 import com.rodrigo.sw1.app_sw1.services.PolicyService;
 import com.rodrigo.sw1.app_sw1.models.Policy;
 
+import com.rodrigo.sw1.app_sw1.services.GroqService;
+import com.rodrigo.sw1.app_sw1.repository.PolicyRepository;
+
 @RestController
 @RequestMapping("/api/policies")
 public class PolicyController {
     
     @Autowired
     private PolicyService policyService;
+
+    @Autowired
+    private PolicyRepository policyRepository;
+
+    @Autowired
+    private GroqService groqService;
 
     @PostMapping
     public ResponseEntity<?> createPolicy(@RequestBody PolicyRequest request, 
@@ -98,4 +107,43 @@ public class PolicyController {
         String userId = authentication.getName();
         return ResponseEntity.ok(policyService.getByUser(userId));
     }
+
+
+    @PostMapping("/assign-policy")
+    public ResponseEntity<?> assignPolicy(@RequestBody Map<String, String> body) {
+        try {
+            String description = body.get("description");
+
+            //List<Policy> policies = policyRepository.findByStatus("active");
+            List<Policy> policies = policyRepository.findAll();
+
+            String policiesList = policies.stream()
+                    .map(p -> "- ID: " + p.getId() + " | Nombre: " + p.getName() +
+                            " | Descripción: " + p.getDescription())
+                    .collect(java.util.stream.Collectors.joining("\n"));
+
+            String prompt = """
+                    Eres un asistente que ayuda a asignar la política de negocio correcta según el caso del cliente.
+                
+                    Políticas disponibles:
+                    %s
+                
+                    El cliente describe su situación: %s
+                
+                    Analiza profundamente el caso del cliente y devuelve SOLO un JSON con esta estructura exacta, sin explicaciones ni markdown:
+                    {
+                        "policyId": "id de la política más adecuada",
+                        "policyName": "nombre de la política",
+                        "reason": "explicación breve de por qué esta política es la más adecuada"
+                    }
+                    """.formatted(policiesList, description);
+
+            String response = groqService.generateContent(prompt);
+            String clean = response.replaceAll("```json", "").replaceAll("```", "").trim();
+
+            return ResponseEntity.ok(clean);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }   
 }
