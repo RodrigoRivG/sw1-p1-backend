@@ -22,7 +22,7 @@ public class ProcedureController {
     public ResponseEntity<?> createProcedure(@RequestBody ProcedureRequest request, 
         Authentication authentication) {
         try{
-            String userId = authentication.getName();
+            String userId = (authentication != null) ? authentication.getName() : "client";
             return ResponseEntity.ok(procedureService.createProcedure(request, userId));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

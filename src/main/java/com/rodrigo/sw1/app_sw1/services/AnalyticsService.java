@@ -277,6 +277,8 @@ public class AnalyticsService {
         List<Map<String, Object>> procedureDetails = new ArrayList<>();
         for (Procedure procedure : procedures) {
             Map<String, Object> detail = new HashMap<>();
+            detail.put("id", procedure.getId());
+            detail.put("policyId", procedure.getPolicyId());
             detail.put("clientName", procedure.getClientName());
             detail.put("status", procedure.getStatus());
             detail.put("createdAt", procedure.getCreatedAt());
