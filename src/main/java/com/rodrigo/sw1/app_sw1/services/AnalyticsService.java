@@ -253,7 +253,7 @@ public class AnalyticsService {
 
     
     public Map<String, Object> getDynamicReport(String startDate, String endDate,
-                                              String department, String type) {
+                                              String department, String type, String client) {
         LocalDateTime start = startDate != null ?
             LocalDate.parse(startDate).atStartOfDay() : LocalDateTime.of(2000, 1, 1, 0, 0);
         LocalDateTime end = endDate != null ?
@@ -270,6 +270,14 @@ public class AnalyticsService {
                         String dept = nodeDepartmentMap.get(p.getCurrentNodeId());
                         return dept != null && dept.toLowerCase().contains(department.toLowerCase());
                     })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Filtrar por cliente (nombre o email) si se especificó
+        if (client != null) {
+            procedures = procedures.stream()
+                    .filter(p -> (p.getClientName() != null && p.getClientName().toLowerCase().contains(client.toLowerCase()))
+                              || (p.getClientEmail() != null && p.getClientEmail().toLowerCase().contains(client.toLowerCase())))
                     .collect(java.util.stream.Collectors.toList());
         }
 

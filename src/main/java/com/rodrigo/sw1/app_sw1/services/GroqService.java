@@ -52,7 +52,8 @@ public class GroqService {
                 "startDate": "YYYY-MM-DD o null",
                 "endDate": "YYYY-MM-DD o null",
                 "department": "nombre del departamento o null",
-                "type": "tasks/procedures/analytics o null"
+                "type": "tasks/procedures/analytics o null",
+                "client": "nombre o correo del cliente o null"
             }
             
             Reglas:
@@ -60,6 +61,7 @@ public class GroqService {
             - Si no menciona fecha de fin, endDate es null
             - Si no menciona departamento, department es null
             - Si no menciona tipo de reporte, type es null
+            - Si no menciona cliente (ej: 'de Juan Perez', 'del cliente rodrigo@empresa.com'), client es null
             - Las fechas deben estar en formato YYYY-MM-DD
             - Hoy es %s
 

@@ -88,10 +88,11 @@ public class AnalyticsController {
             String endDate = (String) filters.get("endDate");
             String department = (String) filters.get("department");
             String type = (String) filters.get("type");
+            String client = (String) filters.get("client");
 
             // Generar reporte con los filtros
             Map<String, Object> report = analyticsService.getDynamicReport(
-                startDate, endDate, department, type
+                startDate, endDate, department, type, client
             );
             
             return ResponseEntity.ok(Map.of(
