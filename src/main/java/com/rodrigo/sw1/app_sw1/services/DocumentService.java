@@ -27,7 +27,7 @@ public class DocumentService {
     private DocumentPermissionRepository documentPermissionRepository;
 
     @Autowired
-    private BackblazeService backblazeService;
+    private S3Service s3Service;
 
     /**
      * Crear un nuevo documento en una política con archivo
@@ -45,7 +45,7 @@ public class DocumentService {
         // Subir archivo a Backblaze si existe
         String fileUrl = null;
         if (file != null && !file.isEmpty()) {
-            fileUrl = backblazeService.uploadFile(file, request.getPolicyId());
+            fileUrl = s3Service.uploadFile(file, request.getPolicyId());
             document.setBackblazeUrl(fileUrl);
         }
 
@@ -128,7 +128,7 @@ public class DocumentService {
         // Subir nuevo archivo a Backblaze si existe
         String fileUrl = null;
         if (file != null && !file.isEmpty()) {
-            fileUrl = backblazeService.uploadFile(file, document.getPolicyId());
+            fileUrl = s3Service.uploadFile(file, document.getPolicyId());
         }
 
         // Crear nueva versión
@@ -333,7 +333,7 @@ public class DocumentService {
         String fileKey = document.getPolicyId() + "/" + document.getName();
         
         // Generar y retornar URL firmada
-        return backblazeService.generatePresignedUrl(fileKey, expirationMinutes);
+        return s3Service.generatePresignedUrl(fileKey, expirationMinutes);
     }
 
     /**
@@ -346,7 +346,7 @@ public class DocumentService {
         // Eliminar archivo de Backblaze si existe
         if (document.getBackblazeUrl() != null && !document.getBackblazeUrl().isEmpty()) {
             try {
-                backblazeService.deleteFile(document.getBackblazeUrl());
+                s3Service.deleteFile(document.getBackblazeUrl());
             } catch (Exception e) {
                 System.err.println("Error eliminando archivo de Backblaze: " + e.getMessage());
             }
@@ -358,7 +358,7 @@ public class DocumentService {
         for (DocumentVersion version : versions) {
             if (version.getBackblazeUrl() != null && !version.getBackblazeUrl().isEmpty()) {
                 try {
-                    backblazeService.deleteFile(version.getBackblazeUrl());
+                    s3Service.deleteFile(version.getBackblazeUrl());
                 } catch (Exception e) {
                     System.err.println("Error eliminando versión de Backblaze: " + e.getMessage());
                 }
