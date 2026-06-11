@@ -54,7 +54,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200", "https://sw1-p1-frontend-123084394988.southamerica-east1.run.app"));
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:4200", 
+            "https://parcial2.d3ng0mw4ykh4qq.amplifyapp.com", 
+            "https://*.amplifyapp.com"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
