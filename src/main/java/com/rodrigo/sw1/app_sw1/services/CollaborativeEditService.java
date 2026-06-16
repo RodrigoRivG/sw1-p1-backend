@@ -93,7 +93,21 @@ public class CollaborativeEditService {
         }
 
         // Verificar si necesita auto-guardado
-        checkAndAutoSave(documentId, editMessage.getContent(), userId);
+        long currentTime = System.currentTimeMillis();
+        long lastSave = lastSaveTime.getOrDefault(documentId, 0L);
+
+        if (lastSave == 0L) {
+            lastSaveTime.putIfAbsent(documentId, currentTime);
+            lastSave = currentTime;
+        }
+
+        if (currentTime - lastSave >= AUTO_SAVE_INTERVAL_MS) {
+            // Actualizar el tiempo de guardado INMEDIATAMENTE de manera síncrona
+            // para bloquear ejecuciones concurrentes por ráfagas de teclado.
+            lastSaveTime.put(documentId, currentTime);
+            // Ejecutar el guardado en segundo plano
+            autoSaveDocumentAsync(documentId, editMessage.getContent(), userId);
+        }
     }
 
     /**
@@ -127,23 +141,10 @@ public class CollaborativeEditService {
     }
 
     /**
-     * Verificar y guardar automáticamente si han pasado los intervalos
+     * Auto-guardar documento en la BD de forma asíncrona
      */
     @Async
-    protected void checkAndAutoSave(String documentId, String content, String userId) {
-        long currentTime = System.currentTimeMillis();
-        long lastSave = lastSaveTime.getOrDefault(documentId, currentTime);
-
-        if (currentTime - lastSave >= AUTO_SAVE_INTERVAL_MS) {
-            autoSaveDocument(documentId, content, userId);
-            lastSaveTime.put(documentId, currentTime);
-        }
-    }
-
-    /**
-     * Auto-guardar documento en la BD
-     */
-    private void autoSaveDocument(String documentId, String content, String userId) {
+    public void autoSaveDocumentAsync(String documentId, String content, String userId) {
         try {
             DocumentUpdateRequest updateRequest = new DocumentUpdateRequest();
             updateRequest.setContent(content);

@@ -123,6 +123,7 @@ public class DocumentService {
         
         DocumentVersion lastVersion = documentVersionRepository
                 .findByDocumentIdAndVersionNumber(documentId, latestVersionNumber)
+                .stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Versión no encontrada"));
 
         // Subir nuevo archivo a Backblaze si existe
@@ -182,6 +183,7 @@ public class DocumentService {
 
         DocumentVersion targetVersion = documentVersionRepository
                 .findByDocumentIdAndVersionNumber(documentId, versionNumber)
+                .stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Versión no encontrada: " + versionNumber));
 
         // Crear nueva versión con el contenido de la versión anterior
@@ -197,6 +199,7 @@ public class DocumentService {
         // Obtener versión anterior a la nueva
         DocumentVersion previousVersion = documentVersionRepository
                 .findByDocumentIdAndVersionNumber(documentId, latestVersionNumber)
+                .stream().findFirst()
                 .orElse(null);
         if (previousVersion != null) {
             restoredVersion.setPreviousVersionId(previousVersion.getId());

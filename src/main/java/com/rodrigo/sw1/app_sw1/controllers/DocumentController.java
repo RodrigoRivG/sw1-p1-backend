@@ -22,12 +22,13 @@ public class DocumentController {
      * Obtener todos los documentos de una política
      */
     @GetMapping("/policy/{policyId}")
-    public ResponseEntity<List<DocumentResponse>> getDocumentsByPolicy(@PathVariable String policyId) {
+    public ResponseEntity<?> getDocumentsByPolicy(@PathVariable String policyId) {
         try {
             List<DocumentResponse> documents = documentService.getDocumentsByPolicy(policyId);
             return ResponseEntity.ok(documents);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -35,12 +36,13 @@ public class DocumentController {
      * Obtener un documento específico
      */
     @GetMapping("/{id}")
-    public ResponseEntity<DocumentResponse> getDocument(@PathVariable String id) {
+    public ResponseEntity<?> getDocument(@PathVariable String id) {
         try {
             DocumentResponse document = documentService.getDocument(id);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -48,7 +50,7 @@ public class DocumentController {
      * Crear un nuevo documento con archivo opcional
      */
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<DocumentResponse> createDocument(
+    public ResponseEntity<?> createDocument(
             Authentication authentication,
             @RequestPart DocumentRequest request,
             @RequestPart(required = false) MultipartFile file) {
@@ -57,7 +59,8 @@ public class DocumentController {
             DocumentResponse document = documentService.createDocument(request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -65,7 +68,7 @@ public class DocumentController {
      * Actualizar contenido de un documento (crear nueva versión) con archivo opcional
      */
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
-    public ResponseEntity<DocumentResponse> updateDocument(
+    public ResponseEntity<?> updateDocument(
             Authentication authentication,
             @PathVariable String id,
             @RequestPart DocumentUpdateRequest request,
@@ -75,7 +78,8 @@ public class DocumentController {
             DocumentResponse document = documentService.updateDocument(id, request, userId, file);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -83,12 +87,13 @@ public class DocumentController {
      * Obtener historial de versiones de un documento
      */
     @GetMapping("/{id}/history")
-    public ResponseEntity<List<DocumentVersionResponse>> getDocumentHistory(@PathVariable String id) {
+    public ResponseEntity<?> getDocumentHistory(@PathVariable String id) {
         try {
             List<DocumentVersionResponse> history = documentService.getDocumentHistory(id);
             return ResponseEntity.ok(history);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -96,7 +101,7 @@ public class DocumentController {
      * Restaurar una versión anterior de un documento
      */
     @PostMapping("/{id}/restore/{versionNumber}")
-    public ResponseEntity<DocumentResponse> restoreVersion(
+    public ResponseEntity<?> restoreVersion(
             Authentication authentication,
             @PathVariable String id,
             @PathVariable Integer versionNumber) {
@@ -105,7 +110,8 @@ public class DocumentController {
             DocumentResponse document = documentService.restoreVersion(id, versionNumber, userId);
             return ResponseEntity.ok(document);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -113,12 +119,13 @@ public class DocumentController {
      * Obtener permisos de un documento
      */
     @GetMapping("/{id}/permissions")
-    public ResponseEntity<List<DocumentPermissionResponse>> getDocumentPermissions(@PathVariable String id) {
+    public ResponseEntity<?> getDocumentPermissions(@PathVariable String id) {
         try {
             List<DocumentPermissionResponse> permissions = documentService.getDocumentPermissions(id);
             return ResponseEntity.ok(permissions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -126,7 +133,7 @@ public class DocumentController {
      * Actualizar permiso en un nodo
      */
     @PutMapping("/{documentId}/permissions/{nodeId}")
-    public ResponseEntity<DocumentPermissionResponse> updatePermission(
+    public ResponseEntity<?> updatePermission(
             @PathVariable String documentId,
             @PathVariable String nodeId,
             @RequestBody Map<String, String> request) {
@@ -135,7 +142,8 @@ public class DocumentController {
             DocumentPermissionResponse permission = documentService.updatePermission(documentId, nodeId, permissionLevel);
             return ResponseEntity.ok(permission);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -143,7 +151,7 @@ public class DocumentController {
      * Verificar permiso del funcionario
      */
     @GetMapping("/{documentId}/check-permission")
-    public ResponseEntity<Map<String, Object>> checkPermission(
+    public ResponseEntity<?> checkPermission(
             @PathVariable String documentId,
             @RequestParam String nodeId,
             @RequestParam String requiredPermission) {
@@ -156,7 +164,8 @@ public class DocumentController {
                 "hasPermission", hasPermission
             ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -164,14 +173,15 @@ public class DocumentController {
      * Descargar documento - genera URL firmada temporal
      */
     @GetMapping("/{id}/download")
-    public ResponseEntity<Map<String, String>> downloadDocument(
+    public ResponseEntity<?> downloadDocument(
             @PathVariable String id,
             @RequestParam(defaultValue = "60") int expirationMinutes) {
         try {
             String presignedUrl = documentService.downloadDocument(id, expirationMinutes);
             return ResponseEntity.ok(Map.of("presignedUrl", presignedUrl));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -179,12 +189,13 @@ public class DocumentController {
      * Eliminar un documento y todos sus archivos
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteDocument(@PathVariable String id) {
+    public ResponseEntity<?> deleteDocument(@PathVariable String id) {
         try {
             documentService.deleteDocument(id);
             return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

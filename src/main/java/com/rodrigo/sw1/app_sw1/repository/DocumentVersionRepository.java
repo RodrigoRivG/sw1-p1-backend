@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface DocumentVersionRepository extends MongoRepository<DocumentVersion, String> {
     List<DocumentVersion> findByDocumentIdOrderByVersionNumberDesc(String documentId);
-    Optional<DocumentVersion> findByDocumentIdAndVersionNumber(String documentId, Integer versionNumber);
+    List<DocumentVersion> findByDocumentIdAndVersionNumber(String documentId, Integer versionNumber);
 }
